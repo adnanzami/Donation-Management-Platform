@@ -28,7 +28,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-sans py-12">
       <div className="max-w-md w-full bg-white p-8 rounded-xl border border-gray-100 shadow-sm">
-        <div className="text-center mb-8">
+              <div className="text-center mb-8">
           <div className="w-8 h-8 bg-emerald-700 rounded-sm mx-auto mb-4"></div>
           <h2 className="text-3xl font-extrabold text-gray-900">Create an account</h2>
           <p className="text-sm text-gray-500 mt-2">Join Givespace to start making an impact</p>
@@ -89,6 +89,14 @@ export default function Register() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account? <Link to="/login" className="text-emerald-700 font-bold hover:underline">Log in</Link>
+        </p>
+        <p>
+        <Link 
+  to="/" 
+  className="block text-center py-4 px-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline mb-6 transition-colors"
+>
+  ← Back to Home
+</Link>
         </p>
       </div>
     </div>
