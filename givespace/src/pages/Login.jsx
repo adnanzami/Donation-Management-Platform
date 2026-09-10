@@ -7,7 +7,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://localhost:3010/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -19,6 +19,7 @@ export default function Login() {
       
       // Store token and redirect based on role
       localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
       if (data.user.role === 'Admin') window.location.href = '/admin-dashboard';
       else if (data.user.role === 'Donor') window.location.href = '/donor-dashboard';
