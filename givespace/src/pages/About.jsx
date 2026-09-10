@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// 1. Import the hero image from your assets folder
+import heroImg from '../assets/about.jpg';
+
 export default function About() {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -11,8 +14,8 @@ export default function About() {
           <span className="text-xl font-bold tracking-tight">Givespace</span>
         </Link>
         <div className="hidden md:flex gap-8 text-sm font-medium text-gray-500">
-          <Link to="/" className="hover:text-gray-900">Browse</Link>
-          <Link to="/how-it-works" className="hover:text-gray-900">How It Works</Link>
+          <Link to="/" className="hover:text-gray-900">Home</Link>
+          <Link to="/how-it-works" className="hover:text-gray-900">How it works</Link>
           <Link to="/about" className="text-emerald-700 font-bold">About</Link>
         </div>
         <div className="flex items-center gap-4 text-sm font-medium">
@@ -25,9 +28,9 @@ export default function About() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         
         {/* Hero Image */}
-        <div className="w-full h-64 md:h-96 bg-gray-100 rounded-2xl overflow-hidden mb-12 shadow-sm border border-gray-100">
+        <div className="w-full h-64 md:h-[500px] bg-gray-100 rounded-2xl overflow-hidden mb-12 shadow-sm border border-gray-100">
           <img 
-            src="/api/placeholder/1200/600" 
+            src={heroImg} 
             alt="People sharing community items" 
             className="w-full h-full object-cover"
           />

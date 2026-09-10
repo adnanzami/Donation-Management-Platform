@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -68,6 +70,17 @@ export default function Login() {
             Sign In
           </button>
         </form>
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Don't have an account? <Link to="/register" className="text-emerald-700 font-bold hover:underline">Register Now</Link>
+        </p>
+        <p>
+        <Link 
+  to="/" 
+  className="block text-center py-4 px-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline mb-6 transition-colors"
+>
+  ← Back to Home
+</Link>
+        </p>
       </div>
     </div>
   );

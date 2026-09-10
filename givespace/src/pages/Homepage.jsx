@@ -23,9 +23,9 @@ export default function Homepage() {
           <span className="text-xl font-bold tracking-tight">Givespace</span>
         </div>
         <div className="hidden md:flex gap-8 text-sm font-medium text-gray-500">
-          <Link to="/" className="hover:text-gray-900">Browse</Link>
+          <Link to="/" className="text-emerald-700 font-bold">Home</Link>
           <Link to="/how-it-works" className="hover:text-gray-900">How It Works</Link>
-          <Link to="/about" className="text-emerald-700 font-bold">About</Link>
+          <Link to="/about" className="hover:text-gray-900">About</Link>
         </div>
         <div className="flex items-center gap-4 text-sm font-medium">
         <Link to="/login" className="text-gray-900 hover:underline">
