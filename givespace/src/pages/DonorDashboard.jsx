@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 
 // Import Link to navigate between React pages
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 // Return the visual style for each donation status
 const getStatusStyle = (status) => {
@@ -126,26 +127,64 @@ export default function DonorDashboard() {
     (item) => item.status === 'completed'
   ).length;
 
+  // Create a navigation function
+  const navigate = useNavigate();
+
+  // Protect the route: Enforce role-based access
+  useEffect(() => {
+    // 1. If no user is logged in at all, kick them to the login page
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    // 2. If the user is a Receiver, kick them back to the homepage
+    if (user.role === 'receiver') {
+      navigate('/');
+    }
+    
+    // Admins and Donors will bypass these checks and stay on the page
+  }, [user, navigate]);
+  
+    // Clear session data and refresh to show the logged-out state
+    const handleLogout = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/'); 
+    };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Navigation */}
       <nav className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
-
           <span className="text-xl font-bold tracking-tight">
             Givespace
           </span>
         </div>
+      
+        {/* Central Navigation Links */}
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">Home</Link>
+          <Link to="/how-it-works" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">How It Works</Link>
+          <Link to="/about-us" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">About Us</Link>        
+        </div>
 
+        {/* User Profile Badge */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
             {initials}
           </div>
-
           <span className="text-sm font-semibold">
             {userName}
           </span>
+          <Link 
+              onClick={handleLogout}
+              className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
+            >
+              Logout
+            </Link>
         </div>
       </nav>
 

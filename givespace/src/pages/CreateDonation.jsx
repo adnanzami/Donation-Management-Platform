@@ -16,7 +16,8 @@ export default function CreateDonation() {
     condition: '',
     quantity: 1,
     suburb: '',
-    postcode: ''
+    postcode: '',
+    imageUrl: '' 
   });
 
   // Store an error message if the donation cannot be created
@@ -62,7 +63,7 @@ export default function CreateDonation() {
             category: formData.category,
             condition: formData.condition,
             quantity: Number(formData.quantity),
-            images: [],
+            images: formData.imageUrl ? [formData.imageUrl] : [], 
             location: {
               suburb: formData.suburb,
               postcode: formData.postcode
@@ -158,6 +159,22 @@ export default function CreateDonation() {
                 onChange={handleChange}
                 required
                 rows="4"
+                className="w-full px-4 py-3 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-700"
+              />
+            </div>
+
+            {/* Donation Image URL */}
+            <div>
+              <label className="block text-sm font-bold mb-2">
+                Image URL (Optional)
+              </label>
+
+              <input
+                type="text"
+                name="imageUrl"
+                value={formData.imageUrl}
+                onChange={handleChange}
+                placeholder="https://example.com/image.jpg"
                 className="w-full px-4 py-3 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-700"
               />
             </div>

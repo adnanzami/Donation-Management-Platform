@@ -28,28 +28,23 @@ export default function Homepage() {
   useEffect(() => {
     const loadAvailableItems = async () => {
       try {
-        // Request the available donations from the backend
-        const response = await fetch(
-          'http://localhost:3010/api/donation-items/available'
-        );
+        // 1. Match the full URL used in your other components for local testing
+        const response = await fetch('http://localhost:3010/api/donation-items/available');
 
-        // Convert the server response into a JavaScript object
-        const data = await response.json();
-
-        // Stop the process if the server returns an error
+        // 2. Check if the response is valid BEFORE trying to parse it as JSON
         if (!response.ok) {
-          throw new Error(
-            data.message || 'Unable to load available items'
-          );
+          throw new Error(`Server error: ${response.status}`);
         }
+
+        // 3. Now it is safe to parse the JSON data
+        const data = await response.json();
 
         // Save the available donations so React can display them
         setItems(data.donationItems);
       } catch (error) {
         // Display an error message on the homepage
-        setError(error.message);
+        setError(error.message || "Unable to load available items.");
       } finally {
-        // Stop displaying the loading message
         setLoading(false);
       }
     };
@@ -90,7 +85,30 @@ export default function Homepage() {
       ?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Check if a user is currently logged in
+  const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  
+  // Determine the correct dashboard path based on the user's role
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'Admin') return '/admin-dashboard';
+    if (user.role === 'Donor') return '/donor-dashboard';
+    
+    // Receivers don't have a dedicated dashboard, they use the homepage
+    return '/'; 
+  };
+
+  // Clear session data and refresh to show the logged-out state
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.reload(); 
+  };
+
   return (
+    
+    
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Navigation */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
@@ -108,21 +126,35 @@ export default function Homepage() {
           <Link to="/about" className="hover:text-gray-900">About</Link>
         </div>
 
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <Link
-            to="/login"
-            className="text-gray-900 hover:underline"
-          >
-            Log in
-          </Link>
+        {/* Conditional rendering for the top right corner */}
+        {user ? (
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-semibold text-gray-900">
+              Welcome, {user.name}
+            </span>
 
-          <Link
-            to="/register"
-            className="bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors"
-          >
-            Register
-          </Link>
-        </div>
+            
+
+            {/* New Logout Button */}
+            <Link 
+              onClick={handleLogout}
+              className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
+            >
+              Logout
+            </Link>
+
+            <Link to={getDashboardPath()} className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors">
+              Dashboard
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <Link to="/login" className="text-sm font-bold text-emerald-700">Login</Link>
+            <Link to="/register" className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors">
+              Register
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Hero section */}

@@ -13,6 +13,7 @@ import DonorDashboard from './pages/DonorDashboard';
 import CreateDonation from './pages/CreateDonation';
 import About from './pages/About';
 import HowItWorks from './pages/HowItWorks';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
         {/* Donor pages */}
         <Route
