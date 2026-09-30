@@ -17,33 +17,87 @@ export default function Homepage() {
   // Store an error message if something goes wrong
   const [error, setError] = useState('');
 
-  // Check whether the user has logged in
+  // Get the authentication information
   const token = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('user');
 
-  // Send logged-in users to the donation form
-  // Send visitors to the login page
-  const donationPath = token ? '/create-donation' : '/login';
+  let user = null;
+
+  try {
+    user = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    user = null;
+  }
+
+  // Determine the correct dashboard path based on the user's role
+  const getDashboardPath = () => {
+    if (!token || !user) {
+      return '/login';
+    }
+
+    if (user.role === 'Admin') {
+      return '/admin-dashboard';
+    }
+
+    if (user.role === 'Donor') {
+      return '/donor-dashboard';
+    }
+
+    if (user.role === 'Receiver') {
+      return '/receiver-dashboard';
+    }
+
+    return '/login';
+  };
+
+  // Only donors can open the create donation page
+  const getDonationPath = () => {
+    if (!token || !user) {
+      return '/login';
+    }
+
+    if (user.role === 'Donor') {
+      return '/create-donation';
+    }
+
+    return getDashboardPath();
+  };
+
+  // Determine where the Request Item button should go
+  const getRequestPath = () => {
+    if (!token || !user) {
+      return '/login';
+    }
+
+    if (user.role === 'Receiver') {
+      return '/receiver-dashboard';
+    }
+
+    return getDashboardPath();
+  };
 
   // Load all available donations when the homepage opens
   useEffect(() => {
     const loadAvailableItems = async () => {
       try {
-        // 1. Match the full URL used in your other components for local testing
-        const response = await fetch('http://localhost:3010/api/donation-items/available');
+        const response = await fetch(
+          'http://localhost:3010/api/donation-items/available'
+        );
 
-        // 2. Check if the response is valid BEFORE trying to parse it as JSON
         if (!response.ok) {
           throw new Error(`Server error: ${response.status}`);
         }
 
-        // 3. Now it is safe to parse the JSON data
         const data = await response.json();
 
-        // Save the available donations so React can display them
-        setItems(data.donationItems);
-      } catch (error) {
-        // Display an error message on the homepage
-        setError(error.message || "Unable to load available items.");
+        // Support either an array or an object containing donationItems
+        if (Array.isArray(data)) {
+          setItems(data);
+        } else {
+          setItems(data.donationItems || data.items || []);
+        }
+      } catch (err) {
+        setError(err.message || 'Unable to load available items.');
       } finally {
         setLoading(false);
       }
@@ -52,13 +106,17 @@ export default function Homepage() {
     loadAvailableItems();
   }, []);
 
-  // Create the category buttons using the real donation data
+  // Create category buttons using the real donation data
   const categories = [
     'All',
-    ...new Set(items.map((item) => item.category))
+    ...new Set(
+      items
+        .map((item) => item.category)
+        .filter(Boolean)
+    ),
   ];
 
-  // Display all items or only items from the selected category
+  // Display all items or items from the selected category
   const filteredItems =
     selectedCategory === 'All'
       ? items
@@ -68,7 +126,9 @@ export default function Homepage() {
 
   // Count the different categories
   const totalCategories = new Set(
-    items.map((item) => item.category)
+    items
+      .map((item) => item.category)
+      .filter(Boolean)
   ).size;
 
   // Count the different suburbs
@@ -85,30 +145,14 @@ export default function Homepage() {
       ?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Check if a user is currently logged in
-  const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
-  
-  // Determine the correct dashboard path based on the user's role
-  const getDashboardPath = () => {
-    if (!user) return '/login';
-    if (user.role === 'Admin') return '/admin-dashboard';
-    if (user.role === 'Donor') return '/donor-dashboard';
-    
-    // Receivers don't have a dedicated dashboard, they use the homepage
-    return '/'; 
-  };
-
-  // Clear session data and refresh to show the logged-out state
+  // Clear the user's session
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.reload(); 
+    window.location.href = '/';
   };
 
   return (
-    
-    
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Navigation */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
@@ -121,36 +165,63 @@ export default function Homepage() {
         </div>
 
         <div className="hidden md:flex gap-8 text-sm font-medium text-gray-500">
-          <Link to="/" className="text-emerald-700 font-bold">Home</Link>
-          <Link to="/how-it-works" className="hover:text-gray-900">How It Works</Link>
-          <Link to="/about" className="hover:text-gray-900">About</Link>
+          <Link
+            to="/"
+            className="text-emerald-700 font-bold"
+          >
+            Home
+          </Link>
+
+          <Link
+            to="/how-it-works"
+            className="hover:text-gray-900"
+          >
+            How It Works
+          </Link>
+
+          <Link
+            to="/about"
+            className="hover:text-gray-900"
+          >
+            About
+          </Link>
         </div>
 
-        {/* Conditional rendering for the top right corner */}
-        {user ? (
+        {/* Display different buttons depending on login status */}
+        {user && token ? (
           <div className="flex items-center gap-4">
             <span className="text-sm font-semibold text-gray-900">
               Welcome, {user.name}
             </span>
 
-            
-
-            {/* New Logout Button */}
-            <Link 
+            <button
+              type="button"
               onClick={handleLogout}
               className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
             >
               Logout
-            </Link>
+            </button>
 
-            <Link to={getDashboardPath()} className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors">
+            <Link
+              to={getDashboardPath()}
+              className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors"
+            >
               Dashboard
             </Link>
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-bold text-emerald-700">Login</Link>
-            <Link to="/register" className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors">
+            <Link
+              to="/login"
+              className="text-sm font-bold text-emerald-700"
+            >
+              Login
+            </Link>
+
+            <Link
+              to="/register"
+              className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors"
+            >
               Register
             </Link>
           </div>
@@ -166,7 +237,7 @@ export default function Homepage() {
 
           <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900">
             Give what you <br />
-            don't need. <br />
+            don&apos;t need. <br />
 
             <span className="text-emerald-700">
               Help someone
@@ -183,15 +254,13 @@ export default function Homepage() {
           </p>
 
           <div className="flex gap-4">
-            {/* Open the donation form or login page */}
             <Link
-              to={donationPath}
+              to={getDonationPath()}
               className="bg-emerald-700 text-white font-semibold px-6 py-3 rounded-md hover:bg-emerald-800 transition-colors"
             >
               Donate an item
             </Link>
 
-            {/* Move to the available items section */}
             <button
               type="button"
               onClick={scrollToItems}
@@ -202,7 +271,7 @@ export default function Homepage() {
           </div>
         </div>
 
-        {/* Statistics calculated from real available donations */}
+        {/* Statistics calculated from available donations */}
         <div className="flex gap-12 border-b border-gray-100 pb-12 mt-20">
           <div>
             <p className="text-3xl font-bold">
@@ -236,7 +305,10 @@ export default function Homepage() {
         </div>
 
         {/* Available items section */}
-        <div id="available-items" className="mt-16">
+        <div
+          id="available-items"
+          className="mt-16"
+        >
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-2xl font-bold text-gray-900">
               Available now
@@ -265,26 +337,25 @@ export default function Homepage() {
             ))}
           </div>
 
-          {/* Display a message while loading */}
           {loading && (
             <p className="py-10 text-gray-500">
               Loading available items...
             </p>
           )}
 
-          {/* Display an error message if loading fails */}
           {error && (
             <div className="mb-8 p-3 bg-red-50 text-red-700 rounded-md">
               {error}
             </div>
           )}
 
-          {/* Display a message when there are no available items */}
-          {!loading && !error && filteredItems.length === 0 && (
-            <p className="py-10 text-gray-500">
-              There are no available items in this category.
-            </p>
-          )}
+          {!loading &&
+            !error &&
+            filteredItems.length === 0 && (
+              <p className="py-10 text-gray-500">
+                There are no available items in this category.
+              </p>
+            )}
 
           {/* Item grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -324,7 +395,8 @@ export default function Homepage() {
 
                     <span className="mx-1">•</span>
 
-                    {item.location?.suburb || 'Location unavailable'}
+                    {item.location?.suburb ||
+                      'Location unavailable'}
 
                     {item.location?.postcode
                       ? `, ${item.location.postcode}`
@@ -335,13 +407,12 @@ export default function Homepage() {
                     {item.description}
                   </p>
 
-                  {/* This button will be connected later */}
-                  <button
-                    type="button"
-                    className="w-full border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors"
+                  <Link
+                    to={getRequestPath()}
+                    className="w-full text-center border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors"
                   >
                     Request item
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
