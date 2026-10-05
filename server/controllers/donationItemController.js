@@ -75,28 +75,18 @@ exports.getMyDonationItems = async (req, res) => {
   }
 };
 
-// Get all donations that are available to receivers
+// Get all available donations for the public Homepage
 exports.getAvailableDonationItems = async (req, res) => {
   try {
-    // Find only donations approved and marked as available
-    const donationItems = await DonationItem.find({
-      status: 'available'
-    })
-      // Include the donor's name without including private information
+    // CRITICAL: Filter explicitly for 'available' status
+    const donationItems = await DonationItem.find({ status: 'available' })
       .populate('donorId', 'name')
-      // Display the newest donations first
       .sort({ createdAt: -1 });
 
-    // Return the available donations
-    res.status(200).json({
-      donationItems
-    });
+    res.status(200).json({ donationItems });
   } catch (error) {
-    // Return an error if the available donations cannot be loaded
-    res.status(500).json({
-      message: 'Unable to load available donation items',
-      error: error.message
-    });
+    console.error('Error fetching available items:', error);
+    res.status(500).json({ message: 'Server error retrieving available items.' });
   }
 };
 
@@ -125,64 +115,56 @@ exports.getPendingDonationItems = async (req, res) => {
   }
 };
 
-// Approve or reject a pending donation
+// Approve or reject a donation (Admin action)
 exports.reviewDonationItem = async (req, res) => {
   try {
-    // Get the donation ID from the route
-    const donationId = req.params.id;
+    // The frontend should pass { status: 'available' } or { status: 'rejected' } in the body
+    const { status } = req.body; 
 
-    // Get the new status and review note from the request
-    const { status, reviewNote } = req.body;
-
-    // Only allow the administrator to make an item available or rejected
+    // Validate the input to ensure it's a valid status
     if (!['available', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        message: 'Status must be available or rejected'
-      });
+      return res.status(400).json({ message: 'Invalid status update.' });
     }
 
-    // Find the donation by its ID
-    const donationItem = await DonationItem.findById(donationId);
+    const updatedItem = await DonationItem.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status: status,
+        reviewedBy: req.user._id, // Track which admin approved it
+        updatedAt: Date.now()
+      },
+      { new: true }
+    );
 
-    // Stop if the donation does not exist
-    if (!donationItem) {
-      return res.status(404).json({
-        message: 'Donation item not found'
-      });
+    if (!updatedItem) {
+      return res.status(404).json({ message: 'Donation item not found.' });
     }
 
-    // Only pending donations can be reviewed
-    if (donationItem.status !== 'pending') {
-      return res.status(400).json({
-        message: 'This donation has already been reviewed'
-      });
-    }
-
-    // Save the administrator's decision
-    donationItem.status = status;
-
-    // Save the administrator's user ID
-    donationItem.reviewedBy = req.user.id;
-
-    // Save the optional explanation
-    donationItem.reviewNote = reviewNote || null;
-
-    // Save the changes in MongoDB
-    await donationItem.save();
-
-    // Return the updated donation
-    res.status(200).json({
-      message:
-        status === 'available'
-          ? 'Donation item approved successfully'
-          : 'Donation item rejected successfully',
-      donationItem
-    });
+    res.status(200).json({ message: `Item successfully marked as ${status}.`, item: updatedItem });
   } catch (error) {
-    // Return an error if the donation cannot be reviewed
-    res.status(500).json({
-      message: 'Unable to review donation item',
-      error: error.message
-    });
+    console.error('Error reviewing item:', error);
+    res.status(500).json({ message: 'Server error updating item status.' });
+  }
+};
+
+// Get a single donation item by its ID
+exports.getDonationItemById = async (req, res) => {
+  try {
+    const donationItem = await DonationItem.findById(req.params.id);
+    
+    if (!donationItem) {
+      return res.status(404).json({ message: 'Donation item not found.' });
+    }
+    
+    res.status(200).json({ donationItem });
+  } catch (error) {
+    console.error('Error fetching single donation:', error);
+    
+    // Catch invalid MongoDB ID formats
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'Donation item not found.' });
+    }
+    
+    res.status(500).json({ message: 'Server error retrieving the donation.' });
   }
 };

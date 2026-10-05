@@ -53,3 +53,11 @@ app.get(/(.*)/, (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+const requestRoutes = require('./routes/requestRoutes');
+const userRoutes = require('./routes/userRoutes');
+
+// ... existing middleware ...
+app.use('/api/requests', requestRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/donation-items', donationItemRoutes);

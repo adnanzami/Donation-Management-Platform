@@ -1,222 +1,221 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar'; 
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // State to toggle between the different admin use cases
-  const [activeTab, setActiveTab] = useState('users');
 
-  // Get the logged-in admin's information from the browser
+  // Placeholder state for data you will fetch from the backend
+  const [users, setUsers] = useState([]);
+  const [pendingDonations, setPendingDonations] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
-  const userName = user?.name || 'Admin User';
 
-  // Create the user's initials
-  const initials = userName
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  // Clear session data and redirect to homepage
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/'); 
-  };
-
-  // Prevent non-admins from viewing this page (Security measure)
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== 'Admin') {
       navigate('/');
     }
   }, [user, navigate]);
 
+  // Fetch Admin Data
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch all users
+        const usersRes = await fetch('http://localhost:3010/api/users', { headers });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          setUsers(usersData.users || []);
+        }
+
+        // Fetch pending donation listings (Record Officer role)
+        const donationsRes = await fetch('http://localhost:3010/api/donation-items/pending', { headers });
+        if (donationsRes.ok) {
+          const donationsData = await donationsRes.json();
+          setPendingDonations(donationsData.donationItems || []);
+        }
+
+        // Fetch pending receiver requests
+        const requestsRes = await fetch('http://localhost:3010/api/requests/pending', { headers });
+        if (requestsRes.ok) {
+          const requestsData = await requestsRes.json();
+          setPendingRequests(requestsData.requests || []);
+        }
+      } catch (err) {
+        console.error('Error fetching admin data:', err);
+        setError('Failed to connect to the database. Check your backend server.');
+      }
+    };
+
+   // Only fetch if the user is a verified admin
+   if (user && user.role === 'Admin') {
+    fetchAdminData();
+  }
+  }, [user]);
+
+  // Example functions for Admin actions (Requires corresponding Express backend routes)
+  const handlePromoteToAdmin = async (userId) => {
+    alert(`Backend route needed: PATCH /api/users/${userId}/role (Set to 'Admin')`);
+  };
+
+  const handleApproveDonation = async (itemId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3010/api/donation-items/${itemId}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'available' }) // CRITICAL: Send the new status
+      });
+
+      if (response.ok) {
+        // Remove the approved item from the local pending list so it disappears from the screen
+        setPendingDonations(prev => prev.filter(item => item._id !== itemId));
+        alert('Donation approved and published to homepage!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to approve: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error approving donation:', err);
+    }
+  };
+
+  const handleApproveRequest = async (requestId) => {
+    alert(`Backend route needed: PATCH /api/requests/${requestId}/approve`);
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navigation */}
-      <nav className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
-          <span className="text-xl font-bold tracking-tight">
-            Givespace
-          </span>
-        </div>
-      
-        {/* Central Navigation Links */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">Home</Link>
-          <Link to="/how-it-works" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">How It Works</Link>
-          <Link to="/about-us" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">About Us</Link>
-          <Link to="/admin-dashboard" className="text-sm font-bold text-emerald-700">Dashboard</Link>
-        </div>
+      <Navbar />
 
-        {/* User Profile Badge & Logout */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-800">
-            {initials}
-          </div>
-          <span className="text-sm font-semibold mr-2">
-            {userName}
-          </span>
-          
-          <button 
-            onClick={handleLogout}
-            className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* Main content */}
       <main className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header section */}
         <div className="flex justify-between items-end mb-10">
           <div>
-            <p className="text-emerald-700 text-xs font-bold tracking-widest uppercase mb-2">
-              IT Admin Portal
-            </p>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-              System Administration
-            </h1>
-            <p className="text-gray-500 text-sm">
-              Manage users, platform UI, database settings, and system reports.
-            </p>
-          </div>
-
-          {/* Action button changes based on active tab */}
-          {activeTab === 'staff' && (
-            <Link
-              to="/admin/add-staff"
-              className="bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-md hover:bg-emerald-800 transition-colors flex items-center gap-2 text-sm"
-            >
-              <span>+</span> Create Staff Account
-            </Link>
-          )}
-          {activeTab === 'reports' && (
-            <button
-              className="bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-md hover:bg-emerald-800 transition-colors flex items-center gap-2 text-sm"
-            >
-              Export Analytics (CSV)
-            </button>
-          )}
-        </div>
-
-        {/* Display an error message if something fails */}
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {/* System Overview Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold mb-1 text-emerald-700">Healthy</p>
-            <p className="text-xs text-gray-500 font-medium">Database Status</p>
-          </div>
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold mb-1">24</p>
-            <p className="text-xs text-gray-500 font-medium">Active Staff Accounts</p>
-          </div>
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold mb-1">1,204</p>
-            <p className="text-xs text-gray-500 font-medium">Total Registered Users</p>
-          </div>
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold mb-1">8</p>
-            <p className="text-xs text-gray-500 font-medium">Pending Support Tickets</p>
+            <p className="text-emerald-700 text-xs font-bold tracking-widest uppercase mb-2">Record Officer / Admin Portal</p>
+            <h1 className="text-4xl font-extrabold tracking-tight mb-2">System Administration</h1>
+            <p className="text-gray-500 text-sm">Manage users, approve donation listings, and oversee item requests.</p>
           </div>
         </div>
 
-        {/* Admin Navigation Tabs */}
-        <div className="flex gap-8 border-b border-gray-200 mb-8">
-          <button 
-            onClick={() => setActiveTab('users')}
-            className={`text-sm font-bold pb-3 ${activeTab === 'users' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
+        {error && <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md">{error}</div>}
+
+        <div className="flex gap-8 border-b border-gray-200 mb-8 overflow-x-auto">
+          <button onClick={() => setActiveTab('users')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'users' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
             Manage Users
           </button>
-          <button 
-            onClick={() => setActiveTab('staff')}
-            className={`text-sm font-bold pb-3 ${activeTab === 'staff' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            Staff Accounts
+          <button onClick={() => setActiveTab('donations')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'donations' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            Review Listings (Donors)
           </button>
-          <button 
-            onClick={() => setActiveTab('content')}
-            className={`text-sm font-bold pb-3 ${activeTab === 'content' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            UI / Content
-          </button>
-          <button 
-            onClick={() => setActiveTab('database')}
-            className={`text-sm font-bold pb-3 ${activeTab === 'database' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            Database
-          </button>
-          <button 
-            onClick={() => setActiveTab('reports')}
-            className={`text-sm font-bold pb-3 ${activeTab === 'reports' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            System Reports
+          <button onClick={() => setActiveTab('requests')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'requests' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            Review Requests (Receivers)
           </button>
         </div>
 
-        {/* Tab Content Areas */}
         <div className="w-full">
-          
-          {/* UC21: Manage User Accounts */}
+          {/* User Management Tab */}
+          {/* User Management Tab */}
           {activeTab === 'users' && (
-            <div className="bg-gray-50 rounded-lg p-8 border border-gray-100 text-center">
-              <h2 className="text-lg font-bold mb-2">User Management</h2>
-              <p className="text-gray-500 text-sm mb-4">Search, suspend, or delete standard user profiles (Donors and Receivers).</p>
-              <input type="text" placeholder="Search by email or name..." className="px-4 py-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-700 w-full max-w-md" />
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-lg font-bold">Registered Users</h2>
+                <input type="text" placeholder="Search users..." className="px-4 py-2 border border-gray-300 rounded-md text-sm" />
+              </div>
+              <div className="p-6 flex flex-col gap-4">
+                {users.length === 0 && <p className="text-gray-500">No users found.</p>}
+                {users.map((dbUser) => (
+                  <div key={dbUser._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    <div>
+                      <p className="font-bold">{dbUser.name}</p>
+                      <p className="text-xs text-gray-500">{dbUser.email} • Current Role: {dbUser.role}</p>
+                    </div>
+                    {dbUser.role.toLowerCase() !== 'admin' && (
+                      <button onClick={() => handlePromoteToAdmin(dbUser._id)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1.5 rounded hover:bg-emerald-100">
+                        Promote to Admin
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* UC22: Manage Staff Accounts */}
-          {activeTab === 'staff' && (
-            <div className="bg-gray-50 rounded-lg p-8 border border-gray-100 text-center">
-              <h2 className="text-lg font-bold mb-2">Staff Access Control</h2>
-              <p className="text-gray-500 text-sm">View and manage roles for Record Officers and Customer Service representatives.</p>
+          {/* Donation Approvals (Record Officer Task) */}
+          {activeTab === 'donations' && (
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100">
+                <h2 className="text-lg font-bold">Pending Donation Listings</h2>
+                <p className="text-gray-500 text-sm">Review physical items submitted by donors before making them public.</p>
+              </div>
+              <div className="p-6 flex flex-col gap-4">
+                {pendingDonations.length === 0 && <p className="text-gray-500">No pending donations to review.</p>}
+                {pendingDonations.map((item) => (
+                  <div key={item._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    <div>
+                      <p className="font-bold">{item.title} ({item.condition})</p>
+                      <p className="text-xs text-gray-500">Category: {item.category} • Submitted: {new Date(item.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleApproveDonation(item._id)} className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-800">Approve</button>
+                      <button className="bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded hover:bg-red-100">Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* UC23: Manage UI/UX Interface */}
-          {activeTab === 'content' && (
-            <div className="bg-gray-50 rounded-lg p-8 border border-gray-100 text-center">
-              <h2 className="text-lg font-bold mb-2">Content Management System</h2>
-              <p className="text-gray-500 text-sm">Update platform announcements, homepage banners, and static text configurations.</p>
+          {/* Request Approvals */}
+          {activeTab === 'requests' && (
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100">
+                <h2 className="text-lg font-bold">Pending Item Requests</h2>
+                <p className="text-gray-500 text-sm">Review requests from receivers who want to claim an available item.</p>
+              </div>
+              <div className="p-6 flex flex-col gap-4">
+                {pendingRequests.length === 0 && (
+                  <p className="text-gray-500">No pending item requests to review.</p>
+                )}
+                {pendingRequests.map((request) => (
+                  <div key={request._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    <div>
+                      <p className="font-bold">
+                        Request for: {request.donationItem?.title || 'Unknown Item'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Requested by: {request.receiver?.name || 'Unknown Receiver'} • {new Date(request.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleApproveRequest(request._id)} 
+                        className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-800"
+                      >
+                        Approve Request
+                      </button>
+                      <button 
+                        className="bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded hover:bg-red-100"
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-
-          {/* UC24: Manage Database */}
-          {activeTab === 'database' && (
-            <div className="bg-gray-50 rounded-lg p-8 border border-gray-100 text-center">
-              <h2 className="text-lg font-bold mb-2">Database Maintenance</h2>
-              <p className="text-gray-500 text-sm mb-4">Execute maintenance scripts and optimize MongoDB collections.</p>
-              <button className="bg-red-50 text-red-700 border border-red-200 font-bold px-4 py-2 rounded-md hover:bg-red-100 text-sm">
-                Clear Orphaned Records
-              </button>
-            </div>
-          )}
-
-          {/* UC25: Generate System Reports */}
-          {activeTab === 'reports' && (
-            <div className="bg-gray-50 rounded-lg p-8 border border-gray-100 text-center">
-              <h2 className="text-lg font-bold mb-2">Analytics & Exports</h2>
-              <p className="text-gray-500 text-sm">Generate metrics on donation volumes, user growth, and request fulfillment rates.</p>
-            </div>
-          )}
-
         </div>
       </main>
     </div>
   );
-}
+} 

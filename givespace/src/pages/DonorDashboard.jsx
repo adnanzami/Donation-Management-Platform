@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 
 // Import Link to navigate between React pages
 import { Link, useNavigate } from 'react-router-dom';
+// Navbar login
+import Navbar from '../components/Navbar'; 
 
 
 // Return the visual style for each donation status
@@ -155,38 +157,7 @@ export default function DonorDashboard() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navigation */}
-      <nav className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center border-b border-gray-50">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
-          <span className="text-xl font-bold tracking-tight">
-            Givespace
-          </span>
-        </div>
-      
-        {/* Central Navigation Links */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">Home</Link>
-          <Link to="/how-it-works" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">How It Works</Link>
-          <Link to="/about-us" className="text-sm font-semibold text-gray-600 hover:text-emerald-700 transition-colors">About Us</Link>        
-        </div>
-
-        {/* User Profile Badge */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
-            {initials}
-          </div>
-          <span className="text-sm font-semibold">
-            {userName}
-          </span>
-          <Link 
-              onClick={handleLogout}
-              className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
-            >
-              Logout
-            </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-4 py-12">
@@ -353,9 +324,12 @@ export default function DonorDashboard() {
                 </div>
 
                 <div className="col-span-1 text-right">
-                  <button className="text-emerald-700 font-bold text-sm hover:underline">
+                <Link 
+                    to={`/donation/${item._id}`} 
+                    className="text-emerald-700 font-bold text-sm hover:underline"
+                  >
                     View →
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
