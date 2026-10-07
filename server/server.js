@@ -7,11 +7,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
-// Import authentication routes
+// Import ALL routes
 const authRoutes = require('./routes/authRoutes');
-
-// Import donation item routes
 const donationItemRoutes = require('./routes/donationItemRoutes');
+const requestRoutes = require('./routes/requestRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Import donation request routes
 const donationRequestRoutes = require('./routes/donationRequestRoutes');
@@ -25,13 +25,11 @@ app.use(cors());
 // Allow the backend to receive JSON data
 app.use(express.json());
 
-// Use the authentication routes
-// Example: /api/auth/login
+// Mount API routes (These MUST come before any static serving or catch-all routes)
 app.use('/api/auth', authRoutes);
-
-// Use the donation item routes
-// Example: /api/donation-items
 app.use('/api/donation-items', donationItemRoutes);
+app.use('/api/requests', requestRoutes);
+app.use('/api/users', userRoutes);
 
 // Use the donation request routes
 // Example: /api/donation-requests
@@ -48,13 +46,13 @@ mongoose
 // Use the port from .env or use 3010 by default
 const PORT = process.env.PORT || 3010;
 
-// Serve the compiled frontend files
+// Commented out for local Vite development to prevent ENOENT errors
+/*
 app.use(express.static(path.join(__dirname, 'dist')));
-
-// Send the React application for frontend navigation
 app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+*/
 
 // Start the backend server
 app.listen(PORT, () => {

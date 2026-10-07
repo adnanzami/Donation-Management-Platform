@@ -63,5 +63,14 @@ router.patch(
   donationItemController.reviewDonationItem
 );
 
+// Get a specific donation by its ID for the ViewDonation page
+// GET http://localhost:3010/api/donation-items/:id
+router.get(
+  '/:id',
+  authMiddleware,
+  donationItemController.getDonationItemById
+);
+
+
 // Export the router so server.js can use it
 module.exports = router;

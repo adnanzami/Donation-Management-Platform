@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,13 +10,7 @@ export default function Login() {
   });
 
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setError('');
-    setLoading(true);
+  const navigate = useNavigate(); // Initialize navigate
 
     try {
       const response = await fetch(
@@ -39,19 +33,16 @@ export default function Login() {
       // Store the authentication information
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Redirect the user according to their role
-      if (data.user.role === 'Admin') {
+      
+      // Use navigate() instead of window.location.href
+      if (data.user.role.toLowerCase() === 'admin') {
         navigate('/admin-dashboard');
-      } else if (data.user.role === 'Donor') {
+      } else if (data.user.role.toLowerCase() === 'donor') {
         navigate('/donor-dashboard');
-      } else if (data.user.role === 'Receiver') {
-        navigate('/receiver-dashboard');
       } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        throw new Error('This account has an invalid user role.');
+        navigate('/receiver-dashboard');
       }
+      
     } catch (err) {
       setError(err.message || 'Could not connect to the server.');
     } finally {
@@ -137,13 +128,15 @@ export default function Login() {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          Don&apos;t have an account?{' '}
-          <Link
-            to="/register"
-            className="text-emerald-700 font-bold hover:underline"
-          >
-            Register Now
-          </Link>
+          Don't have an account? <Link to="/register" className="text-emerald-700 font-bold hover:underline">Register Now</Link>
+        </p>
+        <p>
+        <Link 
+          to="/" 
+          className="block text-center py-4 px-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline mb-6 transition-colors"
+        >
+          ← Back to Home
+        </Link>
         </p>
 
         <Link

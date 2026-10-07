@@ -1,157 +1,24 @@
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
-
-import {
-  Link,
-  useNavigate,
-} from 'react-router-dom';
-
-// Convert a MongoDB date into a readable Australian date
-const formatDate = (date) => {
-  if (!date) return 'No date';
-
-  return new Date(date).toLocaleDateString('en-AU', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-};
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar'; 
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-
-  // Store pending donation items and donation requests
-  const [donations, setDonations] = useState([]);
-  const [requests, setRequests] = useState([]);
-
-  // Control which section is visible
-  const [activeSection, setActiveSection] = useState('donations');
-
-  // Store review notes
-  const [donationNotes, setDonationNotes] = useState({});
-  const [requestNotes, setRequestNotes] = useState({});
-
-  // Store page status
-  const [loading, setLoading] = useState(true);
-  const [reviewingId, setReviewingId] = useState('');
+  const [activeTab, setActiveTab] = useState('users');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
-  const token = localStorage.getItem('token');
+  // Placeholder state for data you will fetch from the backend
+  const [users, setUsers] = useState([]);
+  const [pendingDonations, setPendingDonations] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+
   const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
 
-  let user = null;
-
-  try {
-    user = storedUser ? JSON.parse(storedUser) : null;
-  } catch {
-    user = null;
-  }
-
-  const userRole = user?.role;
-  const userName = user?.name || 'Admin User';
-
-  // Create the administrator's initials
-  const initials = userName
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  // Extract an array from different API response formats
-  const extractArray = (data, properties) => {
-    if (Array.isArray(data)) {
-      return data;
-    }
-
-    for (const property of properties) {
-      if (Array.isArray(data?.[property])) {
-        return data[property];
-      }
-    }
-
-    return [];
-  };
-
-  // Load pending donation items and pending donation requests
-  const loadPendingData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const currentToken = localStorage.getItem('token');
-
-      const [donationsResponse, requestsResponse] =
-        await Promise.all([
-          fetch(
-            'http://localhost:3010/api/donation-items/pending',
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${currentToken}`,
-              },
-            }
-          ),
-
-          fetch(
-            'http://localhost:3010/api/donation-requests/pending',
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${currentToken}`,
-              },
-            }
-          ),
-        ]);
-
-      const donationsData = await donationsResponse.json();
-      const requestsData = await requestsResponse.json();
-
-      if (!donationsResponse.ok) {
-        throw new Error(
-          donationsData.message ||
-            'Unable to load pending donations.'
-        );
-      }
-
-      if (!requestsResponse.ok) {
-        throw new Error(
-          requestsData.message ||
-            'Unable to load pending donation requests.'
-        );
-      }
-
-      setDonations(
-        extractArray(donationsData, [
-          'donationItems',
-          'items',
-          'data',
-        ])
-      );
-
-      setRequests(
-        extractArray(requestsData, [
-          'donationRequests',
-          'requests',
-          'data',
-        ])
-      );
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Protect the dashboard and load its information
   useEffect(() => {
-    if (!token || userRole !== 'Admin') {
-      navigate('/login');
-      return;
+    if (!user || user.role !== 'Admin') {
+      navigate('/');
     }
 
     loadPendingData();
@@ -278,534 +145,251 @@ export default function AdminDashboard() {
     navigate('/');
   };
 
+  // Fetch Admin Data
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch all users
+        const usersRes = await fetch('http://localhost:3010/api/users', { headers });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          setUsers(usersData.users || []);
+        }
+
+        // Fetch pending donation listings (Record Officer role)
+        const donationsRes = await fetch('http://localhost:3010/api/donation-items/pending', { headers });
+        if (donationsRes.ok) {
+          const donationsData = await donationsRes.json();
+          setPendingDonations(donationsData.donationItems || []);
+        }
+
+        // Fetch pending receiver requests
+        const requestsRes = await fetch('http://localhost:3010/api/requests/pending', { headers });
+        if (requestsRes.ok) {
+          const requestsData = await requestsRes.json();
+          setPendingRequests(requestsData.requests || []);
+        }
+      } catch (err) {
+        console.error('Error fetching admin data:', err);
+        setError('Failed to connect to the database. Check your backend server.');
+      }
+    };
+
+   // Only fetch if the user is a verified admin
+   if (user && user.role === 'Admin') {
+    fetchAdminData();
+  }
+  }, [user]);
+
+  // Example functions for Admin actions (Requires corresponding Express backend routes)
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3010/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole }) 
+      });
+
+      if (response.ok) {
+        // Update the local state so the UI reflects the change immediately
+        setUsers(prevUsers => 
+          prevUsers.map(u => u._id === userId ? { ...u, role: newRole } : u)
+        );
+        alert(`User successfully updated to ${newRole}`);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update role: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error changing user role:', err);
+    }
+  };
+
+  const handleApproveDonation = async (itemId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3010/api/donation-items/${itemId}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'available' }) // CRITICAL: Send the new status
+      });
+
+      if (response.ok) {
+        // Remove the approved item from the local pending list so it disappears from the screen
+        setPendingDonations(prev => prev.filter(item => item._id !== itemId));
+        alert('Donation approved and published to homepage!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to approve: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error approving donation:', err);
+    }
+  };
+
+  const handleApproveRequest = async (requestId) => {
+    alert(`Backend route needed: PATCH /api/requests/${requestId}/approve`);
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center border-b border-gray-100">
-        <Link
-          to="/"
-          className="flex items-center gap-2"
-        >
-          <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
+      <Navbar />
 
-          <span className="text-xl font-bold tracking-tight">
-            Givespace
-          </span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-8">
-          <Link
-            to="/"
-            className="text-sm font-semibold text-gray-600 hover:text-emerald-700"
-          >
-            Home
-          </Link>
-
-          <Link
-            to="/how-it-works"
-            className="text-sm font-semibold text-gray-600 hover:text-emerald-700"
-          >
-            How It Works
-          </Link>
-
-          <Link
-            to="/about"
-            className="text-sm font-semibold text-gray-600 hover:text-emerald-700"
-          >
-            About
-          </Link>
-
-          <span className="text-sm font-bold text-emerald-700">
-            Dashboard
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex w-8 h-8 rounded-full bg-emerald-100 items-center justify-center text-xs font-bold text-emerald-800">
-            {initials}
-          </div>
-
-          <span className="hidden sm:block text-sm font-semibold">
-            {userName}
-          </span>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="border border-gray-300 text-sm font-bold px-4 py-2 rounded-md hover:text-emerald-700 hover:bg-gray-50"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Page heading */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-10">
+      <main className="max-w-6xl mx-auto px-4 py-12">
+        <div className="flex justify-between items-end mb-10">
           <div>
-            <p className="text-emerald-700 text-xs font-bold tracking-widest uppercase mb-2">
-              Admin Portal
-            </p>
-
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-              Review Centre
-            </h1>
-
-            <p className="text-gray-500 text-sm">
-              Review donation items and Receiver requests.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={loadPendingData}
-            disabled={loading}
-            className="border border-emerald-700 text-emerald-700 font-bold px-5 py-2.5 rounded-md hover:bg-emerald-50 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        </div>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold text-amber-600 mb-1">
-              {donations.length}
-            </p>
-
-            <p className="text-xs text-gray-500 font-medium">
-              Pending Donation Items
-            </p>
-          </div>
-
-          <div className="border border-gray-100 rounded-xl p-6 shadow-sm">
-            <p className="text-3xl font-bold text-emerald-700 mb-1">
-              {requests.length}
-            </p>
-
-            <p className="text-xs text-gray-500 font-medium">
-              Pending Donation Requests
-            </p>
+            <p className="text-emerald-700 text-xs font-bold tracking-widest uppercase mb-2">Record Officer / Admin Portal</p>
+            <h1 className="text-4xl font-extrabold tracking-tight mb-2">System Administration</h1>
+            <p className="text-gray-500 text-sm">Manage users, approve donation listings, and oversee item requests.</p>
           </div>
         </div>
 
-        {/* Dashboard sections */}
-        <div className="flex gap-4 border-b border-gray-100 mb-8">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSection('donations');
-              setError('');
-              setSuccess('');
-            }}
-            className={`pb-4 px-2 text-sm font-bold border-b-2 transition-colors ${
-              activeSection === 'donations'
-                ? 'border-emerald-700 text-emerald-700'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            Donation Items ({donations.length})
-          </button>
+        {error && <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md">{error}</div>}
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSection('requests');
-              setError('');
-              setSuccess('');
-            }}
-            className={`pb-4 px-2 text-sm font-bold border-b-2 transition-colors ${
-              activeSection === 'requests'
-                ? 'border-emerald-700 text-emerald-700'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            Donation Requests ({requests.length})
+        <div className="flex gap-8 border-b border-gray-200 mb-8 overflow-x-auto">
+          <button onClick={() => setActiveTab('users')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'users' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            Manage Users
+          </button>
+          <button onClick={() => setActiveTab('donations')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'donations' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            Review Listings (Donors)
+          </button>
+          <button onClick={() => setActiveTab('requests')} className={`text-sm font-bold pb-3 whitespace-nowrap ${activeTab === 'requests' ? 'text-emerald-700 border-b-2 border-emerald-700' : 'text-gray-400 hover:text-gray-600'}`}>
+            Review Requests (Receivers)
           </button>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-100 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md">
-            {success}
-          </div>
-        )}
-
-        {loading && (
-          <p className="py-10 text-gray-500">
-            Loading pending information...
-          </p>
-        )}
-
-        {/* Pending donation items */}
-        {!loading && activeSection === 'donations' && (
-          <section>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">
-                Pending Donation Items
-              </h2>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Approve items before they appear publicly.
-              </p>
-            </div>
-
-            {donations.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-10 text-center">
-                <h3 className="font-bold text-lg mb-2">
-                  No donations awaiting review
-                </h3>
-
-                <p className="text-sm text-gray-500">
-                  New Donor submissions will appear here.
-                </p>
+        <div className="w-full">
+          {/* User Management Tab */}
+          {activeTab === 'users' && (
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-lg font-bold">Registered Users</h2>
+                <input type="text" placeholder="Search users..." className="px-4 py-2 border border-gray-300 rounded-md text-sm" />
               </div>
-            ) : (
-              <div className="space-y-5">
-                {donations.map((item) => (
-                  <article
-                    key={item._id}
-                    className="border border-gray-200 rounded-xl p-6 shadow-sm"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Donation information */}
-                      <div className="md:col-span-2">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold">
-                              {item.title}
-                            </h3>
-
-                            <p className="text-sm text-gray-500">
-                              Submitted by{' '}
-                              {item.donorId?.name ||
-                                'Unknown donor'}
-                              {' · '}
-                              {formatDate(item.createdAt)}
-                            </p>
-                          </div>
-
-                          <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
-                            Pending
-                          </span>
-                        </div>
-
-                        <p className="text-gray-700 mb-4">
-                          {item.description}
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
-                          <p>
-                            <span className="font-bold">
-                              Category:
-                            </span>{' '}
-                            {item.category}
-                          </p>
-
-                          <p>
-                            <span className="font-bold">
-                              Condition:
-                            </span>{' '}
-                            {item.condition}
-                          </p>
-
-                          <p>
-                            <span className="font-bold">
-                              Quantity:
-                            </span>{' '}
-                            {item.quantity}
-                          </p>
-
-                          <p>
-                            <span className="font-bold">
-                              Location:
-                            </span>{' '}
-                            {item.location?.suburb ||
-                              'Not specified'}
-
-                            {item.location?.postcode
-                              ? `, ${item.location.postcode}`
-                              : ''}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Donation review controls */}
-                      <div>
-                        <label
-                          htmlFor={`donation-note-${item._id}`}
-                          className="block text-sm font-bold mb-2"
-                        >
-                          Review Note (Optional)
-                        </label>
-
-                        <textarea
-                          id={`donation-note-${item._id}`}
-                          rows="4"
-                          value={
-                            donationNotes[item._id] || ''
-                          }
-                          onChange={(event) =>
-                            setDonationNotes(
-                              (currentNotes) => ({
-                                ...currentNotes,
-                                [item._id]:
-                                  event.target.value,
-                              })
-                            )
-                          }
-                          placeholder="Explain the decision if needed..."
-                          className="w-full border border-gray-300 rounded-md p-3 text-sm mb-3 outline-none focus:ring-2 focus:ring-emerald-700"
-                        />
-
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              reviewDonation(
-                                item._id,
-                                'available'
-                              )
-                            }
-                            disabled={
-                              reviewingId ===
-                              `donation-${item._id}`
-                            }
-                            className="flex-1 bg-emerald-700 text-white font-bold py-2 rounded-md hover:bg-emerald-800 disabled:opacity-50"
-                          >
-                            {reviewingId ===
-                            `donation-${item._id}`
-                              ? 'Saving...'
-                              : 'Approve'}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              reviewDonation(
-                                item._id,
-                                'rejected'
-                              )
-                            }
-                            disabled={
-                              reviewingId ===
-                              `donation-${item._id}`
-                            }
-                            className="flex-1 bg-red-50 text-red-700 border border-red-200 font-bold py-2 rounded-md hover:bg-red-100 disabled:opacity-50"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
+              <div className="p-6 flex flex-col gap-4">
+                {users.length === 0 && <p className="text-gray-500">No users found.</p>}
+                {users.map((dbUser) => (
+                  <div key={dbUser._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    <div>
+                      <p className="font-bold">{dbUser.name}</p>
+                      <p className="text-xs text-gray-500">{dbUser.email} • Current Role: {dbUser.role}</p>
                     </div>
-                  </article>
+                    
+                    {/* Role Selector Dropdown */}
+                    <select 
+                      value={dbUser.role} 
+                      onChange={(e) => handleRoleChange(dbUser._id, e.target.value)}
+                      className="bg-gray-50 border border-gray-200 text-sm font-semibold px-3 py-1.5 rounded outline-none focus:border-emerald-700"
+                    >
+                      <option value="Donor">Donor</option>
+                      <option value="Receiver">Receiver</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+
+                  </div>
                 ))}
               </div>
-            )}
-          </section>
-        )}
+            </div>
+          )}
 
-        {/* Pending Receiver requests */}
-        {!loading && activeSection === 'requests' && (
-          <section>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold">
-                Pending Donation Requests
-              </h2>
+          {/* Donation Approvals (Record Officer Task) */}
+          {activeTab === 'donations' && (
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100">
+                <h2 className="text-lg font-bold">Pending Donation Listings</h2>
+                <p className="text-gray-500 text-sm">Review physical items submitted by donors before making them public.</p>
+              </div>
+              <div className="p-6 flex flex-col gap-4">
+                {pendingDonations.length === 0 && <p className="text-gray-500">No pending donations to review.</p>}
+                
+                {pendingDonations.map((item) => (
+                  <div key={item._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    
+                    {/* --- NEW: Image and Description Block --- */}
+                    <div className="flex gap-4 w-3/4">
+                      <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
+                        {item.images && item.images.length > 0 ? (
+                          <img 
+                            src={item.images[0]} 
+                            alt={item.title} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=600&auto=format&fit=crop';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 font-bold bg-emerald-50">N/A</div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold">{item.title} <span className="text-sm font-normal text-gray-500 ml-1">({item.condition})</span></p>
+                        <p className="text-xs text-gray-500 line-clamp-1 mt-1">{item.description}</p>
+                        <p className="text-xs text-emerald-700 font-semibold mt-1">Category: {item.category}</p>
+                      </div>
+                    </div>
+                    {/* -------------------------------------- */}
 
-              <p className="text-sm text-gray-500 mt-1">
-                Review requests submitted by Receivers.
-              </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleApproveDonation(item._id)} className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-800">Approve</button>
+                      <button className="bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded hover:bg-red-100">Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {requests.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-10 text-center">
-                <h3 className="font-bold text-lg mb-2">
-                  No requests awaiting review
-                </h3>
-
-                <p className="text-sm text-gray-500">
-                  New Receiver requests will appear here.
-                </p>
+          {/* Request Approvals */}
+          {activeTab === 'requests' && (
+            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+              <div className="p-6 bg-gray-50 border-b border-gray-100">
+                <h2 className="text-lg font-bold">Pending Item Requests</h2>
+                <p className="text-gray-500 text-sm">Review requests from receivers who want to claim an available item.</p>
               </div>
-            ) : (
-              <div className="space-y-5">
-                {requests.map((request) => {
-                  const item =
-                    request.donationItemId ||
-                    request.donationItem ||
-                    {};
-
-                  const receiver =
-                    request.receiverId ||
-                    request.receiver ||
-                    {};
-
-                  return (
-                    <article
-                      key={request._id}
-                      className="border border-gray-200 rounded-xl p-6 shadow-sm"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Request information */}
-                        <div className="md:col-span-2">
-                          <div className="flex items-start justify-between gap-4 mb-4">
-                            <div>
-                              <h3 className="text-xl font-bold">
-                                {item.title ||
-                                  'Donation item'}
-                              </h3>
-
-                              <p className="text-sm text-gray-500 mt-1">
-                                Requested by{' '}
-                                {receiver.name ||
-                                  'Unknown Receiver'}
-                                {receiver.email
-                                  ? ` (${receiver.email})`
-                                  : ''}
-                                {' · '}
-                                {formatDate(
-                                  request.createdAt
-                                )}
-                              </p>
-                            </div>
-
-                            <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
-                              Pending
-                            </span>
-                          </div>
-
-                          <div className="mb-4">
-                            <p className="text-sm font-bold text-gray-900 mb-1">
-                              Receiver&apos;s reason:
-                            </p>
-
-                            <p className="text-gray-700">
-                              {request.justification}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
-                            <p>
-                              <span className="font-bold">
-                                Category:
-                              </span>{' '}
-                              {item.category ||
-                                'Not specified'}
-                            </p>
-
-                            <p>
-                              <span className="font-bold">
-                                Condition:
-                              </span>{' '}
-                              {item.condition ||
-                                'Not specified'}
-                            </p>
-
-                            <p>
-                              <span className="font-bold">
-                                Quantity:
-                              </span>{' '}
-                              {item.quantity || 1}
-                            </p>
-
-                            <p>
-                              <span className="font-bold">
-                                Location:
-                              </span>{' '}
-                              {item.location?.suburb ||
-                                'Not specified'}
-
-                              {item.location?.postcode
-                                ? `, ${item.location.postcode}`
-                                : ''}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Request review controls */}
-                        <div>
-                          <label
-                            htmlFor={`request-note-${request._id}`}
-                            className="block text-sm font-bold mb-2"
-                          >
-                            Review Note (Optional)
-                          </label>
-
-                          <textarea
-                            id={`request-note-${request._id}`}
-                            rows="4"
-                            value={
-                              requestNotes[request._id] ||
-                              ''
-                            }
-                            onChange={(event) =>
-                              setRequestNotes(
-                                (currentNotes) => ({
-                                  ...currentNotes,
-                                  [request._id]:
-                                    event.target.value,
-                                })
-                              )
-                            }
-                            placeholder="Explain the decision if needed..."
-                            className="w-full border border-gray-300 rounded-md p-3 text-sm mb-3 outline-none focus:ring-2 focus:ring-emerald-700"
-                          />
-
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                reviewRequest(
-                                  request._id,
-                                  'approved'
-                                )
-                              }
-                              disabled={
-                                reviewingId ===
-                                `request-${request._id}`
-                              }
-                              className="flex-1 bg-emerald-700 text-white font-bold py-2 rounded-md hover:bg-emerald-800 disabled:opacity-50"
-                            >
-                              {reviewingId ===
-                              `request-${request._id}`
-                                ? 'Saving...'
-                                : 'Approve'}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                reviewRequest(
-                                  request._id,
-                                  'rejected'
-                                )
-                              }
-                              disabled={
-                                reviewingId ===
-                                `request-${request._id}`
-                              }
-                              className="flex-1 bg-red-50 text-red-700 border border-red-200 font-bold py-2 rounded-md hover:bg-red-100 disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+              <div className="p-6 flex flex-col gap-4">
+                {pendingRequests.length === 0 && (
+                  <p className="text-gray-500">No pending item requests to review.</p>
+                )}
+                {pendingRequests.map((request) => (
+                  <div key={request._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
+                    <div>
+                      <p className="font-bold">
+                        Request for: {request.donationItem?.title || 'Unknown Item'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Requested by: {request.receiver?.name || 'Unknown Receiver'} • {new Date(request.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleApproveRequest(request._id)} 
+                        className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-800"
+                      >
+                        Approve Request
+                      </button>
+                      <button 
+                        className="bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded hover:bg-red-100"
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </section>
-        )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
-}
+} 

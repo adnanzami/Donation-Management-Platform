@@ -6,6 +6,8 @@ import registerImg from '../assets/register.jpg';
 import browseImg from '../assets/browse.jpg';
 import exchangeImg from '../assets/exchange.jpg';
 
+// Navbar login
+import Navbar from '../components/Navbar'; 
 
 export default function HowItWorks() {
   const steps = [
@@ -31,22 +33,8 @@ export default function HowItWorks() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
-          <span className="text-xl font-bold tracking-tight">Givespace</span>
-        </Link>
-        <div className="hidden md:flex gap-8 text-sm font-medium text-gray-500">
-          <Link to="/" className="hover:text-gray-900">Home</Link>
-          <Link to="/how-it-works" className="text-emerald-700 font-bold">How It Works</Link>
-          <Link to="/about" className="hover:text-gray-900">About</Link>
-        </div>
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <Link to="/login" className="text-gray-900 hover:underline">Log in</Link>
-          <Link to="/register" className="bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors">Register</Link>
-        </div>
-      </nav>
+      {/* Reusable Navigation Component */}
+      <Navbar />
 
       {/* Header */}
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">

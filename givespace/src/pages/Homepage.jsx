@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 // Import Link to navigate between React pages
 import { Link } from 'react-router-dom';
 
+// Navbar login
+import Navbar from '../components/Navbar'; 
+
 export default function Homepage() {
   // Store the available donations received from the backend
   const [items, setItems] = useState([]);
@@ -145,7 +148,25 @@ export default function Homepage() {
       ?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Clear the user's session
+  // Check if a user is currently logged in
+  const storedUser = localStorage.getItem('user');
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  
+// Determine the correct dashboard path based on the user's role
+const getDashboardPath = () => {
+  if (!user) return '/login';
+  
+  // Normalize role string to handle capitalization safely
+  const role = user.role?.toLowerCase();
+  
+  if (role === 'admin') return '/admin-dashboard';
+  if (role === 'donor') return '/donor-dashboard';
+  // FIX: Properly route Receivers to their dashboard instead of falling back to '/'
+  if (role === 'receiver') return '/receiver-dashboard';
+  
+  return '/'; 
+};
+  // Clear session data and refresh to show the logged-out state
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -154,79 +175,7 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
-      {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-emerald-700 rounded-sm"></div>
-
-          <span className="text-xl font-bold tracking-tight">
-            Givespace
-          </span>
-        </div>
-
-        <div className="hidden md:flex gap-8 text-sm font-medium text-gray-500">
-          <Link
-            to="/"
-            className="text-emerald-700 font-bold"
-          >
-            Home
-          </Link>
-
-          <Link
-            to="/how-it-works"
-            className="hover:text-gray-900"
-          >
-            How It Works
-          </Link>
-
-          <Link
-            to="/about"
-            className="hover:text-gray-900"
-          >
-            About
-          </Link>
-        </div>
-
-        {/* Display different buttons depending on login status */}
-        {user && token ? (
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-gray-900">
-              Welcome, {user.name}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="border border-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded-md hover:bg-gray-50 hover:text-emerald-700 transition-colors"
-            >
-              Logout
-            </button>
-
-            <Link
-              to={getDashboardPath()}
-              className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors"
-            >
-              Dashboard
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className="text-sm font-bold text-emerald-700"
-            >
-              Login
-            </Link>
-
-            <Link
-              to="/register"
-              className="bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors"
-            >
-              Register
-            </Link>
-          </div>
-        )}
-      </nav>
+      <Navbar />
 
       {/* Hero section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
@@ -407,11 +356,12 @@ export default function Homepage() {
                     {item.description}
                   </p>
 
+                  {/* Connect this to the ViewDonation page */}
                   <Link
-                    to={getRequestPath()}
-                    className="w-full text-center border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors"
+                    to={`/donation/${item._id}`}
+                    className="w-full border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors text-center block"
                   >
-                    Request item
+                    View
                   </Link>
                 </div>
               </div>
