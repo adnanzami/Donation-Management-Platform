@@ -20,7 +20,130 @@ export default function AdminDashboard() {
     if (!user || user.role !== 'Admin') {
       navigate('/');
     }
-  }, [user, navigate]);
+
+    loadPendingData();
+  }, [
+    token,
+    userRole,
+    navigate,
+    loadPendingData,
+  ]);
+
+  // Approve or reject a donation item
+  const reviewDonation = async (
+    donationId,
+    newStatus
+  ) => {
+    try {
+      setReviewingId(`donation-${donationId}`);
+      setError('');
+      setSuccess('');
+
+      const response = await fetch(
+        `http://localhost:3010/api/donation-items/${donationId}/review`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: newStatus,
+            reviewNote:
+              donationNotes[donationId] || '',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Unable to review donation.'
+        );
+      }
+
+      // Remove the reviewed donation from the pending list
+      setDonations((currentDonations) =>
+        currentDonations.filter(
+          (item) => item._id !== donationId
+        )
+      );
+
+      setSuccess(
+        data.message ||
+          `The donation was ${
+            newStatus === 'available'
+              ? 'approved'
+              : 'rejected'
+          }.`
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReviewingId('');
+    }
+  };
+
+  // Approve or reject a Receiver's donation request
+  const reviewRequest = async (
+    requestId,
+    newStatus
+  ) => {
+    try {
+      setReviewingId(`request-${requestId}`);
+      setError('');
+      setSuccess('');
+
+      const response = await fetch(
+        `http://localhost:3010/api/donation-requests/${requestId}/review`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: newStatus,
+            reviewNote:
+              requestNotes[requestId] || '',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            'Unable to review the donation request.'
+        );
+      }
+
+      // Remove the reviewed request from the pending list
+      setRequests((currentRequests) =>
+        currentRequests.filter(
+          (request) => request._id !== requestId
+        )
+      );
+
+      setSuccess(
+        data.message ||
+          `The donation request was ${newStatus}.`
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReviewingId('');
+    }
+  };
+
+  // Clear the login information
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
+  };
 
   // Fetch Admin Data
   useEffect(() => {
@@ -225,7 +348,6 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
-          )}
 
           {/* Request Approvals */}
           {activeTab === 'requests' && (

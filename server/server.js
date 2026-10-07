@@ -13,6 +13,9 @@ const donationItemRoutes = require('./routes/donationItemRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const userRoutes = require('./routes/userRoutes');
 
+// Import donation request routes
+const donationRequestRoutes = require('./routes/donationRequestRoutes');
+
 // Create the Express application
 const app = express();
 
@@ -28,13 +31,17 @@ app.use('/api/donation-items', donationItemRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/users', userRoutes);
 
+// Use the donation request routes
+// Example: /api/donation-requests
+app.use('/api/donation-requests', donationRequestRoutes);
+
 // Connect the backend to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((err) =>
-    console.error('❌ MongoDB connection error:', err)
-  );
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+  });
 
 // Use the port from .env or use 3010 by default
 const PORT = process.env.PORT || 3010;

@@ -2,7 +2,7 @@
 import {
   BrowserRouter as Router,
   Routes,
-  Route
+  Route,
 } from 'react-router-dom';
 
 // Import all application pages
@@ -10,6 +10,7 @@ import Homepage from './pages/Homepage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import DonorDashboard from './pages/DonorDashboard';
+import ReceiverDashboard from './pages/ReceiverDashboard';
 import CreateDonation from './pages/CreateDonation';
 import About from './pages/About';
 import HowItWorks from './pages/HowItWorks';
