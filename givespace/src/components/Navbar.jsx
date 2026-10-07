@@ -11,10 +11,14 @@ export default function Navbar() {
   // Determine the correct dashboard path based on the user's role
   const getDashboardPath = () => {
     if (!user) return '/login';
-    if (user.role === 'Admin') return '/admin-dashboard';
-    if (user.role === 'Donor') return '/donor-dashboard';
     
-    // Receivers don't have a dedicated dashboard, they use the homepage
+    // Normalize role string to handle capitalization safely
+    const role = user.role?.toLowerCase();
+    
+    if (role === 'admin') return '/admin-dashboard';
+    if (role === 'donor') return '/donor-dashboard';
+    if (role === 'receiver') return '/receiver-dashboard';
+    
     return '/'; 
   };
 

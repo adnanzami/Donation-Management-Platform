@@ -12,13 +12,19 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Elevate a standard user to an Admin role
+// Elevate or change a user's role dynamically
 exports.updateUserRole = async (req, res) => {
   try {
-    // You could pass the exact role in the request body, or hardcode it to Admin
+    const { role } = req.body;
+
+    // Validate that the requested role is one of the allowed options
+    if (!['Admin', 'Donor', 'Receiver'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role provided.' });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { role: 'Admin' },
+      { role: role },
       { new: true }
     ).select('-password');
 
@@ -26,7 +32,7 @@ exports.updateUserRole = async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.status(200).json({ message: 'User role updated successfully.', user });
+    res.status(200).json({ message: `User role updated to ${role} successfully.`, user });
   } catch (error) {
     console.error('Error updating user role:', error);
     res.status(500).json({ message: 'Server error updating user role.' });

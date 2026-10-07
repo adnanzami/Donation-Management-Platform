@@ -92,16 +92,20 @@ export default function Homepage() {
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
   
-  // Determine the correct dashboard path based on the user's role
-  const getDashboardPath = () => {
-    if (!user) return '/login';
-    if (user.role === 'Admin') return '/admin-dashboard';
-    if (user.role === 'Donor') return '/donor-dashboard';
-    
-    // Receivers don't have a dedicated dashboard, they use the homepage
-    return '/'; 
-  };
-
+// Determine the correct dashboard path based on the user's role
+const getDashboardPath = () => {
+  if (!user) return '/login';
+  
+  // Normalize role string to handle capitalization safely
+  const role = user.role?.toLowerCase();
+  
+  if (role === 'admin') return '/admin-dashboard';
+  if (role === 'donor') return '/donor-dashboard';
+  // FIX: Properly route Receivers to their dashboard instead of falling back to '/'
+  if (role === 'receiver') return '/receiver-dashboard';
+  
+  return '/'; 
+};
   // Clear session data and refresh to show the logged-out state
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -293,13 +297,13 @@ export default function Homepage() {
                     {item.description}
                   </p>
 
-                  {/* This button will be connected later */}
-                  <button
-                    type="button"
-                    className="w-full border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors"
+                  {/* Connect this to the ViewDonation page */}
+                  <Link
+                    to={`/donation/${item._id}`}
+                    className="w-full border border-gray-200 text-emerald-700 font-semibold py-2 rounded-md hover:bg-emerald-50 transition-colors text-center block"
                   >
-                    Request item
-                  </button>
+                    View
+                  </Link>
                 </div>
               </div>
             ))}

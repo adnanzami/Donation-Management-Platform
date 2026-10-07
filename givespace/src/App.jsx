@@ -15,6 +15,7 @@ import About from './pages/About';
 import HowItWorks from './pages/HowItWorks';
 import AdminDashboard from './pages/AdminDashboard';
 import ViewDonation from './pages/ViewDonation';
+import ReceiverDashboard from './pages/ReceiverDashboard';
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
         {/* Donor pages */}
         <Route path="/donor-dashboard" element={<DonorDashboard />} />
         <Route path="/create-donation" element={<CreateDonation />} />
-
+        <Route path="/receiver-dashboard" element={<ReceiverDashboard />} />
       </Routes>
     </Router>
   );

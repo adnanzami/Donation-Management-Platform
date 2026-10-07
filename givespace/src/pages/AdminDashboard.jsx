@@ -62,8 +62,31 @@ export default function AdminDashboard() {
   }, [user]);
 
   // Example functions for Admin actions (Requires corresponding Express backend routes)
-  const handlePromoteToAdmin = async (userId) => {
-    alert(`Backend route needed: PATCH /api/users/${userId}/role (Set to 'Admin')`);
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3010/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role: newRole }) 
+      });
+
+      if (response.ok) {
+        // Update the local state so the UI reflects the change immediately
+        setUsers(prevUsers => 
+          prevUsers.map(u => u._id === userId ? { ...u, role: newRole } : u)
+        );
+        alert(`User successfully updated to ${newRole}`);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update role: ${errorData.message}`);
+      }
+    } catch (err) {
+      console.error('Error changing user role:', err);
+    }
   };
 
   const handleApproveDonation = async (itemId) => {
@@ -124,7 +147,6 @@ export default function AdminDashboard() {
 
         <div className="w-full">
           {/* User Management Tab */}
-          {/* User Management Tab */}
           {activeTab === 'users' && (
             <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
               <div className="p-6 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
@@ -139,11 +161,18 @@ export default function AdminDashboard() {
                       <p className="font-bold">{dbUser.name}</p>
                       <p className="text-xs text-gray-500">{dbUser.email} • Current Role: {dbUser.role}</p>
                     </div>
-                    {dbUser.role.toLowerCase() !== 'admin' && (
-                      <button onClick={() => handlePromoteToAdmin(dbUser._id)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1.5 rounded hover:bg-emerald-100">
-                        Promote to Admin
-                      </button>
-                    )}
+                    
+                    {/* Role Selector Dropdown */}
+                    <select 
+                      value={dbUser.role} 
+                      onChange={(e) => handleRoleChange(dbUser._id, e.target.value)}
+                      className="bg-gray-50 border border-gray-200 text-sm font-semibold px-3 py-1.5 rounded outline-none focus:border-emerald-700"
+                    >
+                      <option value="Donor">Donor</option>
+                      <option value="Receiver">Receiver</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+
                   </div>
                 ))}
               </div>
@@ -159,12 +188,35 @@ export default function AdminDashboard() {
               </div>
               <div className="p-6 flex flex-col gap-4">
                 {pendingDonations.length === 0 && <p className="text-gray-500">No pending donations to review.</p>}
+                
                 {pendingDonations.map((item) => (
                   <div key={item._id} className="flex justify-between items-center pb-4 border-b border-gray-50">
-                    <div>
-                      <p className="font-bold">{item.title} ({item.condition})</p>
-                      <p className="text-xs text-gray-500">Category: {item.category} • Submitted: {new Date(item.createdAt).toLocaleDateString()}</p>
+                    
+                    {/* --- NEW: Image and Description Block --- */}
+                    <div className="flex gap-4 w-3/4">
+                      <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
+                        {item.images && item.images.length > 0 ? (
+                          <img 
+                            src={item.images[0]} 
+                            alt={item.title} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=600&auto=format&fit=crop';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 font-bold bg-emerald-50">N/A</div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold">{item.title} <span className="text-sm font-normal text-gray-500 ml-1">({item.condition})</span></p>
+                        <p className="text-xs text-gray-500 line-clamp-1 mt-1">{item.description}</p>
+                        <p className="text-xs text-emerald-700 font-semibold mt-1">Category: {item.category}</p>
+                      </div>
                     </div>
+                    {/* -------------------------------------- */}
+
                     <div className="flex gap-2">
                       <button onClick={() => handleApproveDonation(item._id)} className="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded hover:bg-emerald-800">Approve</button>
                       <button className="bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded hover:bg-red-100">Reject</button>

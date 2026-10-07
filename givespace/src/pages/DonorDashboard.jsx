@@ -295,15 +295,31 @@ export default function DonorDashboard() {
                 key={item._id}
                 className="grid grid-cols-12 gap-4 items-center py-5 border-b border-gray-50 px-2 hover:bg-gray-50 transition-colors"
               >
-                <div className="col-span-5">
-                  <p className="font-bold text-gray-900">
-                    {item.title}
-                  </p>
-
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {item._id}
-                  </p>
+                {/* --- NEW: Image and Description Block --- */}
+                <div className="col-span-5 flex items-start gap-4">
+                  <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
+                    {item.images && item.images.length > 0 ? (
+                      <img 
+                        src={item.images[0]} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=600&auto=format&fit=crop';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 font-bold bg-emerald-50">
+                        N/A
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">{item.title}</p>
+                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 pr-4">{item.description}</p>
+                  </div>
                 </div>
+                {/* -------------------------------------- */}
 
                 <div className="col-span-2 text-sm text-gray-600">
                   {item.category}
@@ -324,7 +340,7 @@ export default function DonorDashboard() {
                 </div>
 
                 <div className="col-span-1 text-right">
-                <Link 
+                  <Link 
                     to={`/donation/${item._id}`} 
                     className="text-emerald-700 font-bold text-sm hover:underline"
                   >

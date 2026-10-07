@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const navigate = useNavigate(); // Initialize navigate
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +23,14 @@ export default function Login() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      if (data.user.role === 'Admin') window.location.href = '/admin-dashboard';
-      else if (data.user.role === 'Donor') window.location.href = '/donor-dashboard';
-      else window.location.href = '/receiver-dashboard';
+      // Use navigate() instead of window.location.href
+      if (data.user.role.toLowerCase() === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (data.user.role.toLowerCase() === 'donor') {
+        navigate('/donor-dashboard');
+      } else {
+        navigate('/receiver-dashboard');
+      }
       
     } catch (err) {
       setError(err.message);
@@ -76,11 +81,11 @@ export default function Login() {
         </p>
         <p>
         <Link 
-  to="/" 
-  className="block text-center py-4 px-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline mb-6 transition-colors"
->
-  ← Back to Home
-</Link>
+          to="/" 
+          className="block text-center py-4 px-4 text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline mb-6 transition-colors"
+        >
+          ← Back to Home
+        </Link>
         </p>
       </div>
     </div>
